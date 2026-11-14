@@ -132,6 +132,90 @@ textarea {
 #form-message {
   color: #c33b4b;
 }
+.account-stats {
+  display: flex;
+  gap: 16px;
+  margin: 18px 0;
+  color: #746b77;
+  font-size: 0.9rem;
+}
+.account-stats strong {
+  color: #25222a;
+}
+#gallery-management {
+  margin: 24px 0 30px;
+  padding-top: 20px;
+  border-top: 1px solid #eee;
+}
+#gallery-management h3 {
+  margin-top: 0;
+}
+#gallery-management > .primary {
+  margin-top: 0;
+}
+#gallery-editor {
+  margin: 18px 0;
+  padding: 16px;
+  border: 1px solid #eee;
+  border-radius: 12px;
+}
+#gallery-editor h4 {
+  margin: 0;
+}
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-weight: 400;
+}
+.checkbox-label input {
+  display: inline-block;
+  width: auto;
+  margin: 0;
+  padding: 0;
+}
+.gallery-list {
+  display: grid;
+  gap: 12px;
+  margin-top: 16px;
+}
+.gallery-item {
+  display: flex;
+  gap: 12px;
+  padding: 10px;
+  border: 1px solid #eee;
+  border-radius: 10px;
+}
+.gallery-cover,
+.gallery-cover-placeholder {
+  flex: 0 0 80px;
+  width: 80px;
+  height: 80px;
+  object-fit: contain;
+  background: #f7f3ef;
+}
+.gallery-cover-placeholder {
+  display: grid;
+  place-items: center;
+  padding: 6px;
+  color: #746b77;
+  font-size: 0.75rem;
+  text-align: center;
+}
+.gallery-item-content {
+  min-width: 0;
+}
+.gallery-item-content p {
+  margin: 5px 0;
+  color: #746b77;
+}
+.gallery-item-content button {
+  margin-right: 6px;
+  border: 0;
+  background: none;
+  color: #8d5cf6;
+  cursor: pointer;
+}
 .drawing-tools {
   display: flex;
   flex-wrap: wrap;

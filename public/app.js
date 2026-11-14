@@ -10,6 +10,7 @@ let mode = "login";
 let drawing = false;
 let tool = "pen";
 let editingArtworkId = null;
+let editingGalleryId = null;
 
 function setMessage(message = "") {
   document.querySelector("#form-message").textContent = message;
@@ -30,6 +31,8 @@ function setLoggedIn(user) {
   document.querySelector("#mypage-link").hidden = false;
   document.querySelector("#logout-button").hidden = false;
   loadArtworks().catch(() => showArtworkError("작품 목록을 불러오지 못했습니다."));
+  loadGalleries().catch(() => showGalleryError("전시 공간 목록을 불러오지 못했습니다."));
+  loadAccountSummary().catch(() => showGalleryError("사용자 정보를 불러오지 못했습니다."));
 }
 
 function setLoggedOut() {
@@ -38,6 +41,14 @@ function setLoggedOut() {
   document.querySelector("#signin-link").hidden = false;
   document.querySelector("#mypage-link").hidden = true;
   document.querySelector("#logout-button").hidden = true;
+}
+
+async function loadAccountSummary() {
+  const response = await fetch("/api/me");
+  if (!response.ok) return;
+  const { galleryCount, artworkCount } = await response.json();
+  document.querySelector("#gallery-count").textContent = galleryCount;
+  document.querySelector("#artwork-count").textContent = artworkCount;
 }
 
 async function loadSession() {
@@ -94,6 +105,135 @@ document.querySelector("#logout-button").addEventListener("click", async () => {
   await fetch("/api/auth/logout", { method: "POST" });
   setLoggedOut();
 });
+
+function showGalleryError(message) {
+  document.querySelector("#gallery-cover-error").textContent = message;
+}
+
+function clearGalleryErrors() {
+  document.querySelectorAll("#gallery-editor .error").forEach((element) => {
+    element.textContent = "";
+  });
+}
+
+function readFileAsDataUrl(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.addEventListener("load", () => resolve(reader.result));
+    reader.addEventListener("error", () => reject(new Error("file read failed")));
+    reader.readAsDataURL(file);
+  });
+}
+
+function openGalleryEditor(gallery = null) {
+  editingGalleryId = gallery?.id || null;
+  document.querySelector("#gallery-editor-title").textContent = gallery
+    ? "전시 공간 수정"
+    : "새 전시 공간 만들기";
+  document.querySelector("#gallery-name").value = gallery?.name || "";
+  document.querySelector("#gallery-description").value = gallery?.description || "";
+  document.querySelector("#gallery-description-count").textContent =
+    `${(gallery?.description || "").length} / 100자`;
+  document.querySelector("#gallery-cover").value = "";
+  document.querySelector("#gallery-cover-remove").checked = false;
+  clearGalleryErrors();
+  document.querySelector("#gallery-editor").hidden = false;
+}
+
+document.querySelector("#new-gallery-button").addEventListener("click", () => {
+  openGalleryEditor();
+});
+document.querySelector("#cancel-gallery-button").addEventListener("click", () => {
+  document.querySelector("#gallery-editor").hidden = true;
+  editingGalleryId = null;
+});
+document.querySelector("#gallery-description").addEventListener("input", (event) => {
+  document.querySelector("#gallery-description-count").textContent =
+    `${event.target.value.length} / 100자`;
+});
+document.querySelector("#gallery-cover-remove").addEventListener("change", (event) => {
+  document.querySelector("#gallery-cover").disabled = event.target.checked;
+});
+
+async function saveGallery() {
+  clearGalleryErrors();
+  const coverInput = document.querySelector("#gallery-cover");
+  const removeCover = document.querySelector("#gallery-cover-remove").checked;
+  const file = coverInput.files[0];
+  if (file && file.size > 5 * 1024 * 1024) {
+    document.querySelector("#gallery-cover-error").textContent =
+      "대표 이미지는 5MB 이하만 사용할 수 있습니다.";
+    return;
+  }
+  const body = {
+    name: document.querySelector("#gallery-name").value,
+    description: document.querySelector("#gallery-description").value,
+  };
+  if (removeCover) body.coverData = "";
+  else if (file) body.coverData = await readFileAsDataUrl(file);
+  const endpoint = editingGalleryId
+    ? `/api/me/galleries/${editingGalleryId}`
+    : "/api/me/galleries";
+  const response = await fetch(endpoint, {
+    method: editingGalleryId ? "PATCH" : "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  const result = await response.json();
+  if (!response.ok) {
+    const error = result.error;
+    if (error.field === "name" || error.field === "description") {
+      document.querySelector(`#gallery-${error.field}-error`).textContent =
+        error.message;
+    } else {
+      showGalleryError(error.message);
+    }
+    return;
+  }
+  document.querySelector("#gallery-editor").hidden = true;
+  editingGalleryId = null;
+  await Promise.all([loadGalleries(), loadAccountSummary()]);
+}
+
+document.querySelector("#save-gallery-button").addEventListener("click", () => {
+  saveGallery().catch(() => showGalleryError("전시 공간을 저장하지 못했습니다."));
+});
+
+async function loadGalleries() {
+  const response = await fetch("/api/me/galleries");
+  if (!response.ok) throw new Error("galleries request failed");
+  const { galleries } = await response.json();
+  const list = document.querySelector("#gallery-list");
+  list.replaceChildren();
+  galleries.forEach((gallery) => {
+    const item = document.createElement("article");
+    item.className = "gallery-item";
+    item.innerHTML =
+      '<div class="gallery-cover-placeholder">대표 이미지 없음</div><div class="gallery-item-content"><strong></strong><p></p><button type="button">수정</button><button type="button">삭제</button></div>';
+    const image = gallery.coverUrl ? document.createElement("img") : null;
+    if (image) {
+      image.src = gallery.coverUrl;
+      image.alt = `${gallery.name} 대표 이미지`;
+      image.className = "gallery-cover";
+      item.querySelector(".gallery-cover-placeholder").replaceWith(image);
+    }
+    item.querySelector("strong").textContent = gallery.name;
+    item.querySelector("p").textContent = gallery.description;
+    item.querySelector("button").addEventListener("click", () => {
+      openGalleryEditor(gallery);
+    });
+    item.querySelectorAll("button")[1].addEventListener("click", async () => {
+      if (!window.confirm("이 전시 공간을 삭제할까요?")) return;
+      const deleteResponse = await fetch(`/api/me/galleries/${gallery.id}`, {
+        method: "DELETE",
+      });
+      if (deleteResponse.ok) {
+        await Promise.all([loadGalleries(), loadAccountSummary()]);
+      }
+    });
+    list.appendChild(item);
+  });
+}
 
 function resetCanvas() {
   context.globalCompositeOperation = "source-over";

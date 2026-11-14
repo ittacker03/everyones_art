@@ -55,6 +55,31 @@
       <section id="welcome-card" class="card" hidden>
         <h2><span id="welcome-name"></span>님, 환영합니다.</h2>
         <p>작품을 만들고 내 작품 목록에서 관리할 수 있습니다.</p>
+        <div class="account-stats">
+          <span>전시 공간 <strong id="gallery-count">0</strong>개</span>
+          <span>작품 <strong id="artwork-count">0</strong>개</span>
+        </div>
+        <section id="gallery-management">
+          <h3>내 전시 공간</h3>
+          <button id="new-gallery-button" class="primary" type="button">전시 공간 만들기</button>
+          <div id="gallery-editor" hidden>
+            <h4 id="gallery-editor-title">새 전시 공간 만들기</h4>
+            <label>전시 공간 이름<input id="gallery-name" maxlength="20" required></label>
+            <small id="gallery-name-error" class="error"></small>
+            <label>전시 공간 소개<textarea id="gallery-description" maxlength="100"></textarea></label>
+            <small id="gallery-description-error" class="error"></small>
+            <small id="gallery-description-count">0 / 100자</small>
+            <label>대표 이미지<input id="gallery-cover" type="file" accept="image/png,image/jpeg"></label>
+            <label class="checkbox-label"><input id="gallery-cover-remove" type="checkbox"> 대표 이미지 삭제</label>
+            <small>PNG 또는 JPG, 최대 5MB</small>
+            <small id="gallery-cover-error" class="error"></small>
+            <div class="editor-actions">
+              <button id="save-gallery-button" class="primary" type="button">저장</button>
+              <button id="cancel-gallery-button" type="button">취소</button>
+            </div>
+          </div>
+          <div id="gallery-list" class="gallery-list"></div>
+        </section>
         <button id="new-artwork-button" class="primary" type="button">작품 만들기</button>
         <div id="artwork-editor" hidden>
           <h3 id="editor-title">새 작품 만들기</h3>

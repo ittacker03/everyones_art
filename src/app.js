@@ -9,6 +9,8 @@ const {
   saveUsers,
   readArtworks,
   saveArtworks,
+  readGalleries,
+  saveGalleries,
 } = require("./storage");
 
 const app = express();
@@ -46,8 +48,39 @@ function artworkResponse(artwork, userId) {
   };
 }
 
+function galleryResponse(gallery, userId) {
+  return {
+    ...gallery,
+    coverUrl: gallery.coverExtension
+      ? `/uploads/galleries/${userId}/${gallery.id}.${gallery.coverExtension}?v=${gallery.coverRev}`
+      : null,
+  };
+}
+
 function normalizeText(value) {
   return typeof value === "string" ? value.normalize("NFC").trim() : "";
+}
+
+function parseCover(dataUrl) {
+  if (typeof dataUrl !== "string") return null;
+  const match = /^data:image\/(png|jpeg);base64,([A-Za-z0-9+/=]+)$/.exec(
+    dataUrl,
+  );
+  if (!match) return null;
+  const buffer = Buffer.from(match[2], "base64");
+  if (buffer.length > 5 * 1024 * 1024) return null;
+  const isPng =
+    match[1] === "png" &&
+    buffer.length >= 8 &&
+    buffer.readUInt32BE(0) === 0x89504e47;
+  const isJpeg =
+    match[1] === "jpeg" &&
+    buffer.length >= 3 &&
+    buffer[0] === 0xff &&
+    buffer[1] === 0xd8 &&
+    buffer[2] === 0xff;
+  if (!isPng && !isJpeg) return null;
+  return { buffer, extension: isPng ? "png" : "jpg" };
 }
 
 function parsePng(dataUrl) {
@@ -72,6 +105,31 @@ async function deleteArtworkImage(userId, artworkId) {
   try {
     await fs.unlink(
       path.join(uploadsDirectory, "artworks", userId, `${artworkId}.png`),
+    );
+  } catch (error) {
+    if (error.code !== "ENOENT") throw error;
+  }
+}
+
+async function saveGalleryCover(userId, galleryId, cover) {
+  const directory = path.join(uploadsDirectory, "galleries", userId);
+  await fs.mkdir(directory, { recursive: true });
+  await fs.writeFile(
+    path.join(directory, `${galleryId}.${cover.extension}`),
+    cover.buffer,
+  );
+}
+
+async function deleteGalleryCover(userId, gallery) {
+  if (!gallery.coverExtension) return;
+  try {
+    await fs.unlink(
+      path.join(
+        uploadsDirectory,
+        "galleries",
+        userId,
+        `${gallery.id}.${gallery.coverExtension}`,
+      ),
     );
   } catch (error) {
     if (error.code !== "ENOENT") throw error;
@@ -237,15 +295,175 @@ app.get("/api/me", requireLogin, async (request, response, next) => {
         error: { code: "LOGIN_REQUIRED", message: "로그인이 필요합니다." },
       });
     const artworks = await readArtworks(user.id);
+    const galleries = await readGalleries(user.id);
     return response.json({
       user: publicUser(user),
-      galleryCount: 0,
+      galleryCount: galleries.length,
       artworkCount: artworks.length,
     });
   } catch (error) {
     return next(error);
   }
 });
+
+app.get("/api/me/galleries", requireLogin, async (request, response, next) => {
+  try {
+    const galleries = await readGalleries(request.session.userId);
+    return response.json({
+      galleries: galleries.map((gallery) =>
+        galleryResponse(gallery, request.session.userId),
+      ),
+    });
+  } catch (error) {
+    return next(error);
+  }
+});
+
+app.post("/api/me/galleries", requireLogin, async (request, response, next) => {
+  try {
+    const name = normalizeText(request.body.name);
+    const description = normalizeText(request.body.description);
+    const cover = request.body.coverData ? parseCover(request.body.coverData) : null;
+    if (!name || name.length > 20) {
+      return sendFieldError(
+        response,
+        "name",
+        "전시 공간 이름은 1~20자로 입력해 주세요.",
+      );
+    }
+    if (description.length > 100) {
+      return sendFieldError(
+        response,
+        "description",
+        "전시 공간 소개는 100자 이하로 입력해 주세요.",
+      );
+    }
+    if (request.body.coverData && !cover) {
+      return sendFieldError(
+        response,
+        "coverData",
+        "대표 이미지는 5MB 이하의 PNG 또는 JPG 파일이어야 합니다.",
+      );
+    }
+    const galleries = await readGalleries(request.session.userId);
+    if (galleries.length >= 5) {
+      return response.status(400).json({
+        error: {
+          code: "GALLERY_LIMIT_REACHED",
+          message: "전시 공간은 최대 5개까지 만들 수 있습니다.",
+        },
+      });
+    }
+    const gallery = {
+      id: `g_${crypto.randomUUID()}`,
+      name,
+      description,
+      coverExtension: cover?.extension || null,
+      coverRev: cover ? 1 : 0,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    if (cover) await saveGalleryCover(request.session.userId, gallery.id, cover);
+    galleries.push(gallery);
+    await saveGalleries(request.session.userId, galleries);
+    return response.status(201).json({
+      gallery: galleryResponse(gallery, request.session.userId),
+    });
+  } catch (error) {
+    return next(error);
+  }
+});
+
+app.patch(
+  "/api/me/galleries/:galleryId",
+  requireLogin,
+  async (request, response, next) => {
+    try {
+      const name = normalizeText(request.body.name);
+      const description = normalizeText(request.body.description);
+      const hasCover = Object.prototype.hasOwnProperty.call(
+        request.body,
+        "coverData",
+      );
+      const cover = hasCover && request.body.coverData
+        ? parseCover(request.body.coverData)
+        : null;
+      if (!name || name.length > 20) {
+        return sendFieldError(
+          response,
+          "name",
+          "전시 공간 이름은 1~20자로 입력해 주세요.",
+        );
+      }
+      if (description.length > 100) {
+        return sendFieldError(
+          response,
+          "description",
+          "전시 공간 소개는 100자 이하로 입력해 주세요.",
+        );
+      }
+      if (hasCover && request.body.coverData && !cover) {
+        return sendFieldError(
+          response,
+          "coverData",
+          "대표 이미지는 5MB 이하의 PNG 또는 JPG 파일이어야 합니다.",
+        );
+      }
+      const galleries = await readGalleries(request.session.userId);
+      const gallery = galleries.find(
+        (item) => item.id === request.params.galleryId,
+      );
+      if (!gallery) {
+        return response.status(404).json({
+          error: { code: "NOT_FOUND", message: "전시 공간을 찾을 수 없습니다." },
+        });
+      }
+      if (hasCover && !request.body.coverData) {
+        await deleteGalleryCover(request.session.userId, gallery);
+        gallery.coverExtension = null;
+        gallery.coverRev = 0;
+      } else if (cover) {
+        await deleteGalleryCover(request.session.userId, gallery);
+        await saveGalleryCover(request.session.userId, gallery.id, cover);
+        gallery.coverExtension = cover.extension;
+        gallery.coverRev += 1;
+      }
+      gallery.name = name;
+      gallery.description = description;
+      gallery.updatedAt = new Date().toISOString();
+      await saveGalleries(request.session.userId, galleries);
+      return response.json({
+        gallery: galleryResponse(gallery, request.session.userId),
+      });
+    } catch (error) {
+      return next(error);
+    }
+  },
+);
+
+app.delete(
+  "/api/me/galleries/:galleryId",
+  requireLogin,
+  async (request, response, next) => {
+    try {
+      const galleries = await readGalleries(request.session.userId);
+      const index = galleries.findIndex(
+        (gallery) => gallery.id === request.params.galleryId,
+      );
+      if (index === -1) {
+        return response.status(404).json({
+          error: { code: "NOT_FOUND", message: "전시 공간을 찾을 수 없습니다." },
+        });
+      }
+      const [gallery] = galleries.splice(index, 1);
+      await saveGalleries(request.session.userId, galleries);
+      await deleteGalleryCover(request.session.userId, gallery);
+      return response.json({ ok: true });
+    } catch (error) {
+      return next(error);
+    }
+  },
+);
 
 app.get("/api/me/artworks", requireLogin, async (request, response, next) => {
   try {
