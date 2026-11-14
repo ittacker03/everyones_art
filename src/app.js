@@ -26,6 +26,12 @@ app.use(
     cookie: { httpOnly: true, sameSite: "lax" },
   }),
 );
+app.get(
+  "/gallery_edit.html",
+  requireLogin,
+  (request, response) =>
+    response.sendFile(path.join(publicDirectory, "gallery_edit.html")),
+);
 app.use(express.static(publicDirectory));
 app.use("/uploads", express.static(uploadsDirectory));
 
@@ -51,6 +57,7 @@ function artworkResponse(artwork, userId) {
 function galleryResponse(gallery, userId) {
   return {
     ...gallery,
+    blocks: Array.isArray(gallery.blocks) ? gallery.blocks : [],
     coverUrl: gallery.coverExtension
       ? `/uploads/galleries/${userId}/${gallery.id}.${gallery.coverExtension}?v=${gallery.coverRev}`
       : null,
@@ -358,6 +365,7 @@ app.post("/api/me/galleries", requireLogin, async (request, response, next) => {
       id: `g_${crypto.randomUUID()}`,
       name,
       description,
+      blocks: [],
       coverExtension: cover?.extension || null,
       coverRev: cover ? 1 : 0,
       createdAt: new Date().toISOString(),
@@ -430,6 +438,118 @@ app.patch(
       }
       gallery.name = name;
       gallery.description = description;
+      gallery.updatedAt = new Date().toISOString();
+      await saveGalleries(request.session.userId, galleries);
+      return response.json({
+        gallery: galleryResponse(gallery, request.session.userId),
+      });
+    } catch (error) {
+      return next(error);
+    }
+  },
+);
+
+app.get(
+  "/gallery-edit",
+  requireLogin,
+  (request, response) =>
+    response.sendFile(path.join(publicDirectory, "gallery_edit.html")),
+);
+
+app.get(
+  "/api/me/galleries/:galleryId/editor",
+  requireLogin,
+  async (request, response, next) => {
+    try {
+      const galleries = await readGalleries(request.session.userId);
+      const gallery = galleries.find(
+        (item) => item.id === request.params.galleryId,
+      );
+      if (!gallery) {
+        return response.status(404).json({
+          error: { code: "NOT_FOUND", message: "전시 공간을 찾을 수 없습니다." },
+        });
+      }
+      const artworks = await readArtworks(request.session.userId);
+      return response.json({
+        gallery: galleryResponse(gallery, request.session.userId),
+        artworks: artworks.map((artwork) =>
+          artworkResponse(artwork, request.session.userId),
+        ),
+        designs: [],
+      });
+    } catch (error) {
+      return next(error);
+    }
+  },
+);
+
+function normalizedEditorBlocks(blocks, artworkIds) {
+  if (!Array.isArray(blocks) || blocks.length > 1200) return null;
+  const positions = new Set();
+  const normalized = [];
+  for (const block of blocks) {
+    const x = Number(block?.x);
+    const y = Number(block?.y);
+    const z = Number(block?.z);
+    if (
+      !Number.isInteger(x) ||
+      !Number.isInteger(y) ||
+      !Number.isInteger(z) ||
+      x < 0 ||
+      x >= 20 ||
+      y < 0 ||
+      y >= 20 ||
+      z < 0 ||
+      z >= 3
+    ) {
+      return null;
+    }
+    const position = `${x},${y},${z}`;
+    if (positions.has(position)) return null;
+    positions.add(position);
+    const artworkId =
+      block.frame && block.frame.artworkId ? block.frame.artworkId : null;
+    if (artworkId !== null && !artworkIds.has(artworkId)) return null;
+    normalized.push({
+      id: typeof block.id === "string" ? block.id : `b_${crypto.randomUUID()}`,
+      x,
+      y,
+      z,
+      designId: null,
+      frame: artworkId ? { artworkId } : null,
+    });
+  }
+  return normalized;
+}
+
+app.patch(
+  "/api/me/galleries/:galleryId/editor",
+  requireLogin,
+  async (request, response, next) => {
+    try {
+      const galleries = await readGalleries(request.session.userId);
+      const gallery = galleries.find(
+        (item) => item.id === request.params.galleryId,
+      );
+      if (!gallery) {
+        return response.status(404).json({
+          error: { code: "NOT_FOUND", message: "전시 공간을 찾을 수 없습니다." },
+        });
+      }
+      const artworks = await readArtworks(request.session.userId);
+      const blocks = normalizedEditorBlocks(
+        request.body.blocks,
+        new Set(artworks.map((artwork) => artwork.id)),
+      );
+      if (!blocks) {
+        return sendFieldError(
+          response,
+          "blocks",
+          "블록 위치 또는 액자 작품 정보가 올바르지 않습니다.",
+        );
+      }
+      gallery.blocks = blocks;
       gallery.updatedAt = new Date().toISOString();
       await saveGalleries(request.session.userId, galleries);
       return response.json({
@@ -610,7 +730,15 @@ app.delete(
         });
       }
       const [artwork] = artworks.splice(index, 1);
+      const galleries = await readGalleries(request.session.userId);
+      galleries.forEach((gallery) => {
+        if (!Array.isArray(gallery.blocks)) return;
+        gallery.blocks.forEach((block) => {
+          if (block.frame?.artworkId === artwork.id) block.frame = null;
+        });
+      });
       await saveArtworks(request.session.userId, artworks);
+      await saveGalleries(request.session.userId, galleries);
       await deleteArtworkImage(request.session.userId, artwork.id);
       return response.json({ ok: true });
     } catch (error) {

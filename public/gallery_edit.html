@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>전시 공간 꾸미기 - 모두의 아트</title>
+    <link rel="stylesheet" href="/styles.css" />
+    <link rel="stylesheet" href="/gallery_edit.css" />
+  </head>
+  <body class="gallery-edit-page">
+    <header class="topbar">
+      <a class="brand" href="/">모두의 아트</a>
+      <nav>
+        <a href="/">홈</a>
+        <a id="back-link" href="/">전시 공간 목록</a>
+      </nav>
+    </header>
+    <main>
+      <div class="gallery-edit-header">
+        <div>
+          <p class="eyebrow">GALLERY EDITOR</p>
+          <h1 id="gallery-title">전시 공간 꾸미기</h1>
+        </div>
+        <button id="leave-button" type="button">나가기</button>
+      </div>
+      <p id="page-error" class="error"></p>
+      <div class="gallery-edit-layout">
+        <section class="editor-workspace">
+          <div class="editor-toolbar">
+            <div class="mode-buttons">
+              <button type="button" data-mode="block-install" class="active">블록 설치</button>
+              <button type="button" data-mode="block-remove">블록 제거</button>
+              <button type="button" data-mode="frame-install">액자 설치</button>
+              <button type="button" data-mode="frame-remove">액자 제거</button>
+            </div>
+            <div class="layer-buttons">
+              <button type="button" data-layer="0">1층</button>
+              <button type="button" data-layer="1">2층</button>
+              <button type="button" data-layer="2">3층</button>
+              <button id="overview-button" type="button" aria-pressed="false">전체 보기</button>
+            </div>
+          </div>
+          <div class="selection-status">
+            <span id="mode-status">블록 설치</span>
+            <span id="position-status">(9, 10, 1층)</span>
+            <span>방향키로 이동 · Enter로 확정</span>
+          </div>
+          <canvas id="isometric-canvas" width="960" height="680" tabindex="0"></canvas>
+          <div class="save-row">
+            <button id="save-button" class="primary" type="button">저장</button>
+            <span id="save-status" role="status"></span>
+            <button id="retry-button" type="button" hidden>다시 저장</button>
+          </div>
+        </section>
+        <aside class="editor-sidebar">
+          <section>
+            <h2>블록 디자인</h2>
+            <button class="selection-card active" data-design-id="">
+              <span class="design-swatch"></span>
+              <span>기본 회색</span>
+            </button>
+            <div id="design-list"></div>
+          </section>
+          <section>
+            <h2>내 작품</h2>
+            <p id="artwork-selection-help">액자 설치에 사용할 작품을 선택하세요.</p>
+            <div id="editor-artwork-list"></div>
+          </section>
+        </aside>
+      </div>
+    </main>
+    <dialog id="leave-dialog">
+      <form method="dialog">
+        <h2>저장하지 않은 변경 사항</h2>
+        <p>변경 내용을 저장하고 나갈까요?</p>
+        <div class="dialog-actions">
+          <button value="save">저장하고 나가기</button>
+          <button value="discard">저장하지 않고 나가기</button>
+          <button value="cancel" autofocus>계속 편집</button>
+        </div>
+      </form>
+    </dialog>
+    <script src="/gallery_edit.js"></script>
+  </body>
+</html>

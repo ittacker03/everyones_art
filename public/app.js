@@ -209,7 +209,7 @@ async function loadGalleries() {
     const item = document.createElement("article");
     item.className = "gallery-item";
     item.innerHTML =
-      '<div class="gallery-cover-placeholder">대표 이미지 없음</div><div class="gallery-item-content"><strong></strong><p></p><button type="button">수정</button><button type="button">삭제</button></div>';
+      '<div class="gallery-cover-placeholder">대표 이미지 없음</div><div class="gallery-item-content"><strong></strong><p></p><a class="gallery-edit-link" target="_self">꾸미기</a><button type="button">수정</button><button type="button">삭제</button></div>';
     const image = gallery.coverUrl ? document.createElement("img") : null;
     if (image) {
       image.src = gallery.coverUrl;
@@ -219,7 +219,9 @@ async function loadGalleries() {
     }
     item.querySelector("strong").textContent = gallery.name;
     item.querySelector("p").textContent = gallery.description;
-    item.querySelector("button").addEventListener("click", () => {
+    item.querySelector(".gallery-edit-link").href =
+      `/gallery-edit?galleryId=${encodeURIComponent(gallery.id)}`;
+    item.querySelectorAll("button")[0].addEventListener("click", () => {
       openGalleryEditor(gallery);
     });
     item.querySelectorAll("button")[1].addEventListener("click", async () => {

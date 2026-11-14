@@ -1,0 +1,173 @@
+.gallery-edit-page main {
+  max-width: 1280px;
+  padding-top: 40px;
+}
+.gallery-edit-header,
+.editor-toolbar,
+.selection-status,
+.save-row,
+.mode-buttons,
+.layer-buttons,
+.dialog-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.gallery-edit-header {
+  justify-content: space-between;
+}
+.gallery-edit-header h1 {
+  margin-bottom: 0;
+}
+.gallery-edit-header > button,
+.editor-toolbar button,
+.save-row > button:not(.primary),
+.artwork-selection,
+.selection-card {
+  padding: 9px 12px;
+  border: 1px solid #ddd6df;
+  border-radius: 8px;
+  background: #fff;
+  cursor: pointer;
+  font: inherit;
+}
+.gallery-edit-header > button,
+.gallery-edit-link {
+  color: #8d5cf6;
+}
+.gallery-edit-link {
+  display: inline-block;
+  margin-right: 6px;
+  text-decoration: none;
+  cursor: pointer;
+}
+.gallery-edit-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 250px;
+  gap: 22px;
+  margin-top: 24px;
+}
+.editor-workspace {
+  min-width: 0;
+}
+.editor-toolbar {
+  justify-content: space-between;
+  flex-wrap: wrap;
+}
+.editor-toolbar button.active,
+.selection-card.active,
+.artwork-selection.active {
+  color: #fff;
+  background: #8d5cf6;
+  border-color: #8d5cf6;
+}
+.selection-status {
+  flex-wrap: wrap;
+  margin: 12px 0 8px;
+  color: #746b77;
+  font-size: 0.9rem;
+}
+.selection-status span:first-child,
+.selection-status span:nth-child(2) {
+  color: #25222a;
+  font-weight: 700;
+}
+#isometric-canvas {
+  display: block;
+  width: 100%;
+  height: auto;
+  border: 1px solid #ddd6df;
+  background: #fff;
+  outline: none;
+}
+.save-row {
+  margin-top: 12px;
+}
+.save-row .primary {
+  width: auto;
+  margin-top: 0;
+}
+#save-status {
+  color: #487a55;
+}
+#save-status.error {
+  min-height: 0;
+}
+#retry-button {
+  color: #c33b4b;
+}
+.editor-sidebar {
+  display: grid;
+  align-content: start;
+  gap: 20px;
+}
+.editor-sidebar section {
+  padding: 16px;
+  border: 1px solid #eee;
+  border-radius: 12px;
+  background: #fff;
+}
+.editor-sidebar h2 {
+  margin-top: 0;
+  font-size: 1rem;
+}
+.selection-card {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  text-align: left;
+}
+.design-swatch {
+  width: 24px;
+  height: 24px;
+  margin-right: 8px;
+  border: 1px solid #77737c;
+  background: #aaa5ae;
+}
+#artwork-selection-help {
+  color: #746b77;
+  font-size: 0.8rem;
+}
+#editor-artwork-list {
+  display: grid;
+  gap: 8px;
+}
+.artwork-selection {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 6px;
+  text-align: left;
+}
+.artwork-selection img {
+  width: 42px;
+  height: 42px;
+  object-fit: contain;
+  background: #f7f3ef;
+}
+dialog {
+  max-width: 360px;
+  border: 0;
+  border-radius: 12px;
+  box-shadow: 0 12px 40px #4c394b40;
+}
+dialog::backdrop {
+  background: #25222a66;
+}
+.dialog-actions {
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+.dialog-actions button {
+  padding: 8px 10px;
+  border: 1px solid #ddd6df;
+  border-radius: 8px;
+  background: #fff;
+  cursor: pointer;
+}
+@media (max-width: 860px) {
+  .gallery-edit-layout {
+    grid-template-columns: 1fr;
+  }
+}
