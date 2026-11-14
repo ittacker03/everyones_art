@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>모두의 아트</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <a class="brand" href="/">모두의 아트</a>
+      <nav>
+        <a href="/">홈</a>
+        <a href="#gallery">전시 공간</a>
+        <a id="mypage-link" href="#mypage" hidden>마이페이지</a>
+        <button id="logout-button" type="button" hidden>로그아웃</button>
+        <a id="signin-link" href="/sign-in">로그인/회원가입</a>
+      </nav>
+    </header>
+    <main>
+      <section class="hero">
+        <p class="eyebrow">EVERYONE'S ART</p>
+        <h1>나만의 작품을 그리고<br />전시 공간에 공유해 보세요.</h1>
+        <p>현재는 회원가입과 로그인 기능을 먼저 제공합니다.</p>
+      </section>
+      <section id="auth-card" class="card">
+        <div class="tabs">
+          <button class="active" data-tab="login" type="button">로그인</button>
+          <button data-tab="signup" type="button">회원가입</button>
+        </div>
+        <form id="auth-form">
+          <label
+            >아이디<input name="username" minlength="2" maxlength="20" required
+          /></label>
+          <small id="username-error" class="error"></small>
+          <label
+            >비밀번호<input
+              name="password"
+              type="password"
+              minlength="4"
+              required
+          /></label>
+          <small id="password-error" class="error"></small>
+          <label id="confirm-label" hidden
+            >비밀번호 확인<input
+              name="passwordConfirm"
+              type="password"
+              minlength="4"
+          /></label>
+          <small id="confirm-error" class="error" hidden></small>
+          <button class="primary" type="submit">로그인</button>
+          <p id="form-message" role="alert"></p>
+        </form>
+      </section>
+      <section id="welcome-card" class="card" hidden>
+        <h2><span id="welcome-name"></span>님, 환영합니다.</h2>
+        <p>작품을 만들고 내 작품 목록에서 관리할 수 있습니다.</p>
+        <button id="new-artwork-button" class="primary" type="button">작품 만들기</button>
+        <div id="artwork-editor" hidden>
+          <h3 id="editor-title">새 작품 만들기</h3>
+          <label>작품 제목<input id="artwork-title" maxlength="100" required></label>
+          <small id="artwork-title-error" class="error"></small>
+          <label>작품 설명<textarea id="artwork-description" maxlength="100"></textarea></label>
+          <small id="artwork-description-error" class="error"></small>
+          <small id="artwork-description-count">0 / 100자</small>
+          <div class="drawing-tools">
+            <button type="button" data-tool="pen" class="active">펜</button>
+            <button type="button" data-tool="eraser">지우개</button>
+            <button type="button" data-tool="fill">채우기</button>
+            <button type="button" data-tool="eyedropper">스포이드</button>
+            <button type="button" id="clear-canvas">전체 지우기</button>
+            <input id="pen-color" type="color" value="#25222a" title="펜 색상" aria-label="펜 색상">
+            <input id="pen-size" type="range" min="1" max="40" value="8" title="펜 굵기">
+          </div>
+          <canvas id="artwork-canvas" width="512" height="512"></canvas>
+          <small id="artwork-image-error" class="error"></small>
+          <div class="editor-actions">
+            <button id="save-artwork-button" class="primary" type="button">저장</button>
+            <button id="cancel-artwork-button" type="button">취소</button>
+          </div>
+        </div>
+        <h3>내 작품</h3>
+        <div id="artwork-list" class="artwork-list"></div>
+      </section>
+    </main>
+    <script src="/app.js"></script>
+  </body>
+</html>
