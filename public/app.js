@@ -33,6 +33,7 @@ function setLoggedIn(user) {
   loadArtworks().catch(() => showArtworkError("작품 목록을 불러오지 못했습니다."));
   loadGalleries().catch(() => showGalleryError("전시 공간 목록을 불러오지 못했습니다."));
   loadAccountSummary().catch(() => showGalleryError("사용자 정보를 불러오지 못했습니다."));
+  loadDesignCount().catch(() => showGalleryError("블록 디자인 수를 불러오지 못했습니다."));
 }
 
 function setLoggedOut() {
@@ -46,9 +47,19 @@ function setLoggedOut() {
 async function loadAccountSummary() {
   const response = await fetch("/api/me");
   if (!response.ok) return;
-  const { galleryCount, artworkCount } = await response.json();
+  const { galleryCount, artworkCount, designCount } = await response.json();
   document.querySelector("#gallery-count").textContent = galleryCount;
   document.querySelector("#artwork-count").textContent = artworkCount;
+  document.querySelector("#design-count").textContent = designCount ?? 0;
+}
+
+async function loadDesignCount() {
+  const response = await fetch("/api/me/designs");
+  if (!response.ok) return;
+  const result = await response.json();
+  document.querySelector("#design-count").textContent = Array.isArray(result.designs)
+    ? result.designs.length
+    : 0;
 }
 
 async function loadSession() {
@@ -209,7 +220,7 @@ async function loadGalleries() {
     const item = document.createElement("article");
     item.className = "gallery-item";
     item.innerHTML =
-      '<div class="gallery-cover-placeholder">대표 이미지 없음</div><div class="gallery-item-content"><strong></strong><p></p><a class="gallery-edit-link" target="_self">꾸미기</a><button type="button">수정</button><button type="button">삭제</button></div>';
+      '<div class="gallery-cover-placeholder">대표 이미지 없음</div><div class="gallery-item-content"><strong></strong><p></p><button type="button">정보 수정</button><button type="button">삭제</button></div><a class="gallery-decorate-button" target="_self"><span>꾸미기</span></a>';
     const image = gallery.coverUrl ? document.createElement("img") : null;
     if (image) {
       image.src = gallery.coverUrl;
@@ -219,7 +230,7 @@ async function loadGalleries() {
     }
     item.querySelector("strong").textContent = gallery.name;
     item.querySelector("p").textContent = gallery.description;
-    item.querySelector(".gallery-edit-link").href =
+    item.querySelector(".gallery-decorate-button").href =
       `/gallery-edit?galleryId=${encodeURIComponent(gallery.id)}`;
     item.querySelectorAll("button")[0].addEventListener("click", () => {
       openGalleryEditor(gallery);

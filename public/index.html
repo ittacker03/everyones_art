@@ -54,14 +54,15 @@
       </section>
       <section id="welcome-card" class="card" hidden>
         <h2><span id="welcome-name"></span>님, 환영합니다.</h2>
-        <p>작품을 만들고 내 작품 목록에서 관리할 수 있습니다.</p>
+        <p>나만의 작품과 블록을 만들어서 전시 공간을 꾸미세요!</p>
         <div class="account-stats">
           <span>전시 공간 <strong id="gallery-count">0</strong>개</span>
           <span>작품 <strong id="artwork-count">0</strong>개</span>
+          <span>블록 디자인 <strong id="design-count">0</strong>개</span>
         </div>
         <section id="gallery-management">
           <h3>내 전시 공간</h3>
-          <button id="new-gallery-button" class="primary" type="button">전시 공간 만들기</button>
+          <button id="new-gallery-button" class="primary" type="button">새로운 전시 공간 추가</button>
           <div id="gallery-editor" hidden>
             <h4 id="gallery-editor-title">새 전시 공간 만들기</h4>
             <label>전시 공간 이름<input id="gallery-name" maxlength="20" required></label>
@@ -80,8 +81,19 @@
           </div>
           <div id="gallery-list" class="gallery-list"></div>
         </section>
-        <button id="new-artwork-button" class="primary" type="button">작품 만들기</button>
-        <div id="artwork-editor" hidden>
+        <div class="management-links" aria-label="콘텐츠 관리">
+          <a class="management-link" href="/item_manage">
+            <strong>내 작품 관리</strong>
+            <small>작품을 만들고 수정하거나 삭제합니다.</small>
+          </a>
+          <a class="management-link" href="/design-manage">
+            <strong>블록 디자인 관리</strong>
+            <small>전시 공간에 사용할 블록을 디자인합니다.</small>
+          </a>
+        </div>
+        <div id="legacy-artwork-management" hidden>
+          <button id="new-artwork-button" class="primary" type="button">작품 만들기</button>
+          <div id="artwork-editor" hidden>
           <h3 id="editor-title">새 작품 만들기</h3>
           <label>작품 제목<input id="artwork-title" maxlength="100" required></label>
           <small id="artwork-title-error" class="error"></small>
@@ -103,9 +115,10 @@
             <button id="save-artwork-button" class="primary" type="button">저장</button>
             <button id="cancel-artwork-button" type="button">취소</button>
           </div>
+          </div>
+          <h3>내 작품</h3>
+          <div id="artwork-list" class="artwork-list"></div>
         </div>
-        <h3>내 작품</h3>
-        <div id="artwork-list" class="artwork-list"></div>
       </section>
     </main>
     <script src="/app.js"></script>

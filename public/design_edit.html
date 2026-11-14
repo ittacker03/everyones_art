@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>블록 디자인 편집 - 모두의 아트</title>
+    <link rel="stylesheet" href="/styles.css" />
+    <link rel="stylesheet" href="/design.css" />
+  </head>
+  <body class="design-page">
+    <header class="topbar">
+      <a class="brand" href="/">모두의 아트</a>
+      <nav><a href="/">홈</a><a href="/design-manage">디자인 목록</a></nav>
+    </header>
+    <main>
+      <div class="page-heading">
+        <div>
+          <p class="eyebrow">DESIGN EDITOR</p>
+          <h1 id="page-title">새 블록 디자인</h1>
+        </div>
+        <a class="button" href="/design-manage">나가기</a>
+      </div>
+      <p id="page-error" class="error"></p>
+      <label>디자인 이름<input id="design-name" maxlength="20" required></label>
+      <small id="name-error" class="error"></small>
+      <div class="design-editor-layout">
+        <section>
+          <div class="face-tabs">
+            <button type="button" class="active" data-face="front">앞면</button>
+            <button type="button" data-face="side">옆면</button>
+            <button type="button" data-face="top">윗면</button>
+          </div>
+          <div class="design-tools">
+            <button type="button" class="active" data-tool="pen">펜</button>
+            <button type="button" data-tool="eraser">지우개</button>
+            <button type="button" data-tool="fill">채우기</button>
+            <button type="button" id="clear-face">전체 지우기</button>
+            <input id="design-color" type="color" value="#8d8992" aria-label="디자인 색상">
+            <input id="design-size" type="range" min="1" max="8" value="2" aria-label="펜 굵기">
+          </div>
+          <div id="face-canvases"></div>
+          <p class="design-help">각 면은 32×32 도트로 편집되며 편집 내용이 미리보기에 실시간으로 반영됩니다.</p>
+        </section>
+        <section class="design-preview-panel">
+          <h2>미리보기</h2>
+          <canvas id="design-preview" width="300" height="260"></canvas>
+        </section>
+      </div>
+      <div class="editor-actions">
+        <button id="save-design" class="primary" type="button">저장</button>
+        <a class="button" href="/design-manage">취소</a>
+        <span id="save-status" role="status"></span>
+      </div>
+    </main>
+    <dialog id="leave-dialog">
+      <form method="dialog">
+        <p>저장하지 않은 변경 내용을 버리고 나갈까요?</p>
+        <div class="editor-actions">
+          <button value="discard">나가기</button>
+          <button value="cancel">계속 편집</button>
+        </div>
+      </form>
+    </dialog>
+    <script src="/design_edit.js"></script>
+  </body>
+</html>

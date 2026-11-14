@@ -14,6 +14,8 @@ const tileHeight = 11;
 const blockHeight = 34;
 let gallery;
 let artworks = [];
+let designs = [];
+const designImages = new Map();
 let mode = "block-install";
 let layer = 0;
 let selected = { x: 9, y: 10 };
@@ -51,19 +53,21 @@ function render() {
     .sort((left, right) => left.z - right.z || left.x + left.y - right.x - right.y)
     .forEach(drawBlock);
   if (!overview) drawSelection();
-  document.querySelector("#mode-status").textContent = modeLabels[mode];
+  document.querySelector("#mode-status").textContent = overview ? "전체 뷰" : modeLabels[mode];
   document.querySelector("#position-status").textContent =
     `(${selected.x}, ${selected.y}, ${layer + 1}층)`;
   document.querySelectorAll("[data-mode]").forEach((button) => {
-    button.classList.toggle("active", button.dataset.mode === mode);
+    button.disabled = overview;
+    button.classList.toggle("active", !overview && button.dataset.mode === mode);
   });
   document.querySelectorAll("[data-layer]").forEach((button) => {
-    button.classList.toggle("active", Number(button.dataset.layer) === layer);
+    button.disabled = overview;
+    button.classList.toggle("active", !overview && Number(button.dataset.layer) === layer);
   });
   const overviewButton = document.querySelector("#overview-button");
   overviewButton.classList.toggle("active", overview);
   overviewButton.setAttribute("aria-pressed", String(overview));
-  overviewButton.textContent = overview ? "편집 보기" : "전체 보기";
+  overviewButton.textContent = overview ? "편집" : "전체 뷰";
 }
 
 function diamond(x, y, z, fill, stroke = "#cfc8d6") {
@@ -82,6 +86,31 @@ function diamond(x, y, z, fill, stroke = "#cfc8d6") {
   context.strokeStyle = stroke;
   context.stroke();
   return top;
+}
+
+function drawDesignFace(image, points, flipX = false) {
+  if (!image) return;
+  const base = flipX ? points[1] : points[0];
+  const horizontalEnd = flipX ? points[0] : points[1];
+  const verticalEnd = flipX ? points[2] : points[3];
+  const scale = 32;
+  const u = {
+    x: (horizontalEnd.x - base.x) / scale,
+    y: (horizontalEnd.y - base.y) / scale,
+  };
+  const v = {
+    x: (verticalEnd.x - base.x) / scale,
+    y: (verticalEnd.y - base.y) / scale,
+  };
+  context.save();
+  context.beginPath();
+  context.moveTo(points[0].x, points[0].y);
+  points.slice(1).forEach((item) => context.lineTo(item.x, item.y));
+  context.closePath();
+  context.clip();
+  context.setTransform(u.x, u.y, v.x, v.y, base.x, base.y);
+  context.drawImage(image, 0, 0, scale, scale);
+  context.restore();
 }
 
 function drawGrid() {
@@ -110,6 +139,8 @@ function drawBlock(block) {
   context.globalAlpha = overview || block.z === layer ? 1 : 0.35;
   const top = diamond(block.x, block.y, block.z + 0.01, "#aaa5ae");
   const bottom = top.map((item) => ({ x: item.x, y: item.y + blockHeight }));
+  const images = designImages.get(block.designId);
+  drawDesignFace(images?.top, top);
   context.beginPath();
   context.moveTo(top[3].x, top[3].y);
   context.lineTo(top[2].x, top[2].y);
@@ -119,6 +150,7 @@ function drawBlock(block) {
   context.fillStyle = "#8d8992";
   context.fill();
   context.stroke();
+  drawDesignFace(images?.front, [top[3], top[2], bottom[2], bottom[3]]);
 
   context.beginPath();
   context.moveTo(top[1].x, top[1].y);
@@ -129,6 +161,7 @@ function drawBlock(block) {
   context.fillStyle = "#77737c";
   context.fill();
   context.stroke();
+  drawDesignFace(images?.side, [top[1], top[2], bottom[2], bottom[1]], true);
   if (block.frame) drawFrame(block);
   context.globalAlpha = 1;
 }
@@ -201,6 +234,7 @@ function setDirty() {
 }
 
 function moveSelection(direction) {
+  if (overview) return;
   const next = { ...selected };
   if (direction === "up") next.x -= 1;
   if (direction === "right") next.y -= 1;
@@ -219,6 +253,7 @@ function selectMode(nextMode) {
 }
 
 function applyAction() {
+  if (overview) return;
   const block = blockAt(selected.x, selected.y, layer);
   if (mode === "block-install") {
     if (block) return;
@@ -329,11 +364,34 @@ function renderArtworkList() {
 function renderDesignList() {
   const list = document.querySelector("#design-list");
   list.replaceChildren();
-  document.querySelector("[data-design-id]").addEventListener("click", () => {
+  const defaultButton = document.querySelector("[data-design-id]");
+  defaultButton.addEventListener("click", () => {
     selectedDesignId = null;
-    list.querySelectorAll("button").forEach((button) => button.classList.remove("active"));
-    document.querySelector("[data-design-id]").classList.add("active");
+    document.querySelectorAll("[data-design-id]").forEach((button) =>
+      button.classList.remove("active"),
+    );
+    defaultButton.classList.add("active");
     canvas.focus();
+  });
+  designs.forEach((design) => {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "selection-card";
+    button.dataset.designId = design.id;
+    button.innerHTML = `<span class="design-swatch"></span><span></span>`;
+    button.querySelector(".design-swatch").style.backgroundImage =
+      `url("${design.imageUrls.front}")`;
+    button.querySelector(".design-swatch").style.backgroundSize = "cover";
+    button.querySelector("span:last-child").textContent = design.name;
+    button.addEventListener("click", () => {
+      selectedDesignId = design.id;
+      document.querySelectorAll("[data-design-id]").forEach((item) =>
+        item.classList.remove("active"),
+      );
+      button.classList.add("active");
+      canvas.focus();
+    });
+    list.appendChild(button);
   });
 }
 
@@ -345,6 +403,21 @@ async function initialize() {
   gallery = result.gallery;
   gallery.blocks = Array.isArray(gallery.blocks) ? gallery.blocks : [];
   artworks = result.artworks;
+  designs = Array.isArray(result.designs) ? result.designs : [];
+  await Promise.all(
+    designs.flatMap((design) =>
+      ["front", "side", "top"].map(async (face) => {
+        const image = new Image();
+        image.src = design.imageUrls[face];
+        await new Promise((resolve, reject) => {
+          image.addEventListener("load", resolve, { once: true });
+          image.addEventListener("error", reject, { once: true });
+        });
+        if (!designImages.has(design.id)) designImages.set(design.id, {});
+        designImages.get(design.id)[face] = image;
+      }),
+    ),
+  );
   document.querySelector("#gallery-title").textContent = `${gallery.name} 꾸미기`;
   renderArtworkList();
   renderDesignList();

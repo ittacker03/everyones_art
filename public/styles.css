@@ -142,6 +142,36 @@ textarea {
 .account-stats strong {
   color: #25222a;
 }
+.management-links {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin: 22px 0 30px;
+}
+.management-link {
+  display: grid;
+  gap: 6px;
+  padding: 15px 16px;
+  border: 1px solid #e6ddf7;
+  border-radius: 12px;
+  color: #25222a;
+  background: #fcfaff;
+  text-decoration: none;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+.management-link:hover,
+.management-link:focus-visible {
+  border-color: #8d5cf6;
+  background: #f5efff;
+  outline: none;
+}
+.management-link strong {
+  color: #7042d1;
+}
+.management-link small {
+  color: #746b77;
+  line-height: 1.4;
+}
 #gallery-management {
   margin: 24px 0 30px;
   padding-top: 20px;
@@ -181,6 +211,7 @@ textarea {
 }
 .gallery-item {
   display: flex;
+  align-items: stretch;
   gap: 12px;
   padding: 10px;
   border: 1px solid #eee;
@@ -203,6 +234,7 @@ textarea {
   text-align: center;
 }
 .gallery-item-content {
+  flex: 1;
   min-width: 0;
 }
 .gallery-item-content p {
@@ -285,4 +317,39 @@ textarea {
   background: none;
   color: #8d5cf6;
   cursor: pointer;
+}
+.gallery-decorate-button {
+  display: grid;
+  flex: 0 0 120px;
+  min-height: 80px;
+  place-items: center;
+  border: 1px solid #e6ddf7;
+  border-radius: 12px;
+  color: #7042d1;
+  background: #fcfaff;
+  text-decoration: none;
+  font-size: 1rem;
+  font-weight: 700;
+  transition: border-color 0.15s ease, color 0.15s ease, background 0.15s ease,
+    box-shadow 0.15s ease;
+}
+.gallery-decorate-button:hover,
+.gallery-decorate-button:focus-visible {
+  color: #fff;
+  border-color: #8d5cf6;
+  background: #8d5cf6;
+  box-shadow: 0 8px 18px #8d5cf626;
+  outline: none;
+}
+@media (max-width: 560px) {
+  .management-links {
+    grid-template-columns: 1fr;
+  }
+  .gallery-item {
+    flex-wrap: wrap;
+  }
+  .gallery-decorate-button {
+    flex-basis: 100%;
+    min-height: 58px;
+  }
 }

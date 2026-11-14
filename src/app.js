@@ -11,6 +11,8 @@ const {
   saveArtworks,
   readGalleries,
   saveGalleries,
+  readDesigns,
+  saveDesigns,
 } = require("./storage");
 
 const app = express();
@@ -32,6 +34,30 @@ app.get(
   (request, response) =>
     response.sendFile(path.join(publicDirectory, "gallery_edit.html")),
 );
+app.get("/design-manage", requireLogin, (request, response) =>
+  response.sendFile(path.join(publicDirectory, "design_manage.html")),
+);
+app.get("/design_manage.html", requireLogin, (request, response) =>
+  response.sendFile(path.join(publicDirectory, "design_manage.html")),
+);
+app.get("/design_edit", requireLogin, (request, response) =>
+  response.sendFile(path.join(publicDirectory, "design_edit.html")),
+);
+app.get("/design-edit", requireLogin, (request, response) =>
+  response.sendFile(path.join(publicDirectory, "design_edit.html")),
+);
+app.get("/design_edit.html", requireLogin, (request, response) =>
+  response.sendFile(path.join(publicDirectory, "design_edit.html")),
+);
+app.get("/item_manage", requireLogin, (request, response) =>
+  response.sendFile(path.join(publicDirectory, "item_manage.html")),
+);
+app.get("/item-manage", requireLogin, (request, response) =>
+  response.sendFile(path.join(publicDirectory, "item_manage.html")),
+);
+app.get("/item_manage.html", requireLogin, (request, response) =>
+  response.sendFile(path.join(publicDirectory, "item_manage.html")),
+);
 app.use(express.static(publicDirectory));
 app.use("/uploads", express.static(uploadsDirectory));
 
@@ -51,6 +77,19 @@ function artworkResponse(artwork, userId) {
   return {
     ...artwork,
     imageUrl: `/uploads/artworks/${userId}/${artwork.id}.png?v=${artwork.rev}`,
+  };
+}
+
+function designResponse(design, userId) {
+  const faces = ["front", "side", "top"];
+  return {
+    ...design,
+    imageUrls: Object.fromEntries(
+      faces.map((face) => [
+        face,
+        `/uploads/designs/${userId}/${design.id}/${face}.png?v=${design.rev}`,
+      ]),
+    ),
   };
 }
 
@@ -102,6 +141,23 @@ function parsePng(dataUrl) {
     : null;
 }
 
+function parseDesignPng(dataUrl) {
+  if (typeof dataUrl !== "string") return null;
+  const match = /^data:image\/png;base64,([A-Za-z0-9+/=]+)$/.exec(dataUrl);
+  if (!match) return null;
+  const buffer = Buffer.from(match[1], "base64");
+  if (
+    buffer.length < 33 ||
+    buffer.readUInt32BE(0) !== 0x89504e47 ||
+    buffer.toString("ascii", 12, 16) !== "IHDR"
+  ) {
+    return null;
+  }
+  return buffer.readUInt32BE(16) === 32 && buffer.readUInt32BE(20) === 32
+    ? buffer
+    : null;
+}
+
 async function saveArtworkImage(userId, artworkId, image) {
   const directory = path.join(uploadsDirectory, "artworks", userId);
   await fs.mkdir(directory, { recursive: true });
@@ -116,6 +172,23 @@ async function deleteArtworkImage(userId, artworkId) {
   } catch (error) {
     if (error.code !== "ENOENT") throw error;
   }
+}
+
+async function saveDesignImages(userId, designId, faces) {
+  const directory = path.join(uploadsDirectory, "designs", userId, designId);
+  await fs.mkdir(directory, { recursive: true });
+  await Promise.all(
+    Object.entries(faces).map(([face, image]) =>
+      fs.writeFile(path.join(directory, `${face}.png`), image),
+    ),
+  );
+}
+
+async function deleteDesignImages(userId, designId) {
+  await fs.rm(path.join(uploadsDirectory, "designs", userId, designId), {
+    recursive: true,
+    force: true,
+  });
 }
 
 async function saveGalleryCover(userId, galleryId, cover) {
@@ -303,10 +376,12 @@ app.get("/api/me", requireLogin, async (request, response, next) => {
       });
     const artworks = await readArtworks(user.id);
     const galleries = await readGalleries(user.id);
+    const designs = await readDesigns(user.id);
     return response.json({
       user: publicUser(user),
       galleryCount: galleries.length,
       artworkCount: artworks.length,
+      designCount: designs.length,
     });
   } catch (error) {
     return next(error);
@@ -449,6 +524,168 @@ app.patch(
   },
 );
 
+app.get("/api/me/designs", requireLogin, async (request, response, next) => {
+  try {
+    const designs = await readDesigns(request.session.userId);
+    return response.json({
+      designs: designs.map((design) =>
+        designResponse(design, request.session.userId),
+      ),
+    });
+  } catch (error) {
+    return next(error);
+  }
+});
+
+app.post("/api/me/designs", requireLogin, async (request, response, next) => {
+  try {
+    const name = normalizeText(request.body.name);
+    const faceData = request.body.faces;
+    if (!name || name.length > 20) {
+      return sendFieldError(
+        response,
+        "name",
+        "블록 디자인 이름은 1~20자로 입력해 주세요.",
+      );
+    }
+    if (
+      !faceData ||
+      ["front", "side", "top"].some((face) => !parseDesignPng(faceData[face]))
+    ) {
+      return sendFieldError(
+        response,
+        "faces",
+        "앞면, 옆면, 윗면의 32×32 PNG를 모두 저장해 주세요.",
+      );
+    }
+    const designs = await readDesigns(request.session.userId);
+    const nameKey = name.toLocaleLowerCase("ko-KR");
+    if (designs.some((design) => design.nameKey === nameKey)) {
+      return sendFieldError(response, "name", "이미 사용 중인 디자인 이름입니다.");
+    }
+    const design = {
+      id: `d_${crypto.randomUUID()}`,
+      name,
+      nameKey,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      rev: 1,
+    };
+    await saveDesignImages(
+      request.session.userId,
+      design.id,
+      Object.fromEntries(
+        ["front", "side", "top"].map((face) => [
+          face,
+          parseDesignPng(faceData[face]),
+        ]),
+      ),
+    );
+    designs.push(design);
+    await saveDesigns(request.session.userId, designs);
+    return response.status(201).json({
+      design: designResponse(design, request.session.userId),
+    });
+  } catch (error) {
+    return next(error);
+  }
+});
+
+app.patch(
+  "/api/me/designs/:designId",
+  requireLogin,
+  async (request, response, next) => {
+    try {
+      const name = normalizeText(request.body.name);
+      const designs = await readDesigns(request.session.userId);
+      const design = designs.find((item) => item.id === request.params.designId);
+      if (!design) {
+        return response.status(404).json({
+          error: { code: "NOT_FOUND", message: "블록 디자인을 찾을 수 없습니다." },
+        });
+      }
+      if (!name || name.length > 20) {
+        return sendFieldError(
+          response,
+          "name",
+          "블록 디자인 이름은 1~20자로 입력해 주세요.",
+        );
+      }
+      const nameKey = name.toLocaleLowerCase("ko-KR");
+      if (
+        designs.some(
+          (item) => item.id !== design.id && item.nameKey === nameKey,
+        )
+      ) {
+        return sendFieldError(response, "name", "이미 사용 중인 디자인 이름입니다.");
+      }
+      const faceData = request.body.faces;
+      if (
+        !faceData ||
+        ["front", "side", "top"].some((face) => !parseDesignPng(faceData[face]))
+      ) {
+        return sendFieldError(
+          response,
+          "faces",
+          "앞면, 옆면, 윗면의 32×32 PNG를 모두 저장해 주세요.",
+        );
+      }
+      design.name = name;
+      design.nameKey = nameKey;
+      design.updatedAt = new Date().toISOString();
+      design.rev += 1;
+      await saveDesignImages(
+        request.session.userId,
+        design.id,
+        Object.fromEntries(
+          ["front", "side", "top"].map((face) => [
+            face,
+            parseDesignPng(faceData[face]),
+          ]),
+        ),
+      );
+      await saveDesigns(request.session.userId, designs);
+      return response.json({
+        design: designResponse(design, request.session.userId),
+      });
+    } catch (error) {
+      return next(error);
+    }
+  },
+);
+
+app.delete(
+  "/api/me/designs/:designId",
+  requireLogin,
+  async (request, response, next) => {
+    try {
+      const designs = await readDesigns(request.session.userId);
+      const index = designs.findIndex(
+        (design) => design.id === request.params.designId,
+      );
+      if (index === -1) {
+        return response.status(404).json({
+          error: { code: "NOT_FOUND", message: "블록 디자인을 찾을 수 없습니다." },
+        });
+      }
+      const [design] = designs.splice(index, 1);
+      const galleries = await readGalleries(request.session.userId);
+      galleries.forEach((gallery) => {
+        if (!Array.isArray(gallery.blocks)) return;
+        gallery.blocks.forEach((block) => {
+          if (block.designId === design.id) block.designId = null;
+        });
+      });
+      await saveDesigns(request.session.userId, designs);
+      await saveGalleries(request.session.userId, galleries);
+      await deleteDesignImages(request.session.userId, design.id);
+      return response.json({ ok: true });
+    } catch (error) {
+      return next(error);
+    }
+  },
+);
+
 app.get(
   "/gallery-edit",
   requireLogin,
@@ -471,12 +708,15 @@ app.get(
         });
       }
       const artworks = await readArtworks(request.session.userId);
+      const designs = await readDesigns(request.session.userId);
       return response.json({
         gallery: galleryResponse(gallery, request.session.userId),
         artworks: artworks.map((artwork) =>
           artworkResponse(artwork, request.session.userId),
         ),
-        designs: [],
+        designs: designs.map((design) =>
+          designResponse(design, request.session.userId),
+        ),
       });
     } catch (error) {
       return next(error);
@@ -484,7 +724,7 @@ app.get(
   },
 );
 
-function normalizedEditorBlocks(blocks, artworkIds) {
+function normalizedEditorBlocks(blocks, artworkIds, designIds) {
   if (!Array.isArray(blocks) || blocks.length > 1200) return null;
   const positions = new Set();
   const normalized = [];
@@ -511,12 +751,15 @@ function normalizedEditorBlocks(blocks, artworkIds) {
     const artworkId =
       block.frame && block.frame.artworkId ? block.frame.artworkId : null;
     if (artworkId !== null && !artworkIds.has(artworkId)) return null;
+    const designId =
+      typeof block.designId === "string" && block.designId ? block.designId : null;
+    if (designId !== null && !designIds.has(designId)) return null;
     normalized.push({
       id: typeof block.id === "string" ? block.id : `b_${crypto.randomUUID()}`,
       x,
       y,
       z,
-      designId: null,
+      designId,
       frame: artworkId ? { artworkId } : null,
     });
   }
@@ -538,15 +781,17 @@ app.patch(
         });
       }
       const artworks = await readArtworks(request.session.userId);
+      const designs = await readDesigns(request.session.userId);
       const blocks = normalizedEditorBlocks(
         request.body.blocks,
         new Set(artworks.map((artwork) => artwork.id)),
+        new Set(designs.map((design) => design.id)),
       );
       if (!blocks) {
         return sendFieldError(
           response,
           "blocks",
-          "블록 위치 또는 액자 작품 정보가 올바르지 않습니다.",
+          "블록 위치, 디자인 또는 액자 작품 정보가 올바르지 않습니다.",
         );
       }
       gallery.blocks = blocks;

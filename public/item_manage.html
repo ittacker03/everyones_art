@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>내 작품 관리 - 모두의 아트</title>
+    <link rel="stylesheet" href="/styles.css" />
+    <link rel="stylesheet" href="/item_manage.css" />
+  </head>
+  <body class="item-manage-page">
+    <header class="topbar">
+      <a class="brand" href="/">모두의 아트</a>
+      <nav><a href="/">홈</a><a href="/item_manage">내 작품 관리</a></nav>
+    </header>
+    <main>
+      <div class="page-heading">
+        <div>
+          <p class="eyebrow">MY ARTWORKS</p>
+          <h1>내 작품 관리</h1>
+        </div>
+        <button id="new-artwork-button" class="primary-link" type="button">새 작품 만들기</button>
+      </div>
+      <p id="page-error" class="error"></p>
+      <section id="artwork-editor" class="artwork-editor" hidden>
+        <h2 id="editor-title">새 작품 만들기</h2>
+        <label>작품 제목<input id="artwork-title" maxlength="100" required></label>
+        <small id="artwork-title-error" class="error"></small>
+        <label>작품 설명<textarea id="artwork-description" maxlength="100"></textarea></label>
+        <small id="artwork-description-error" class="error"></small>
+        <small id="artwork-description-count">0 / 100자</small>
+        <div class="drawing-tools">
+          <button type="button" data-tool="pen" class="active">펜</button>
+          <button type="button" data-tool="eraser">지우개</button>
+          <button type="button" data-tool="fill">채우기</button>
+          <button type="button" data-tool="eyedropper">스포이드</button>
+          <button type="button" id="clear-canvas">전체 지우기</button>
+          <input id="pen-color" type="color" value="#25222a" title="펜 색상" aria-label="펜 색상">
+          <input id="pen-size" type="range" min="1" max="40" value="8" title="펜 굵기" aria-label="펜 굵기">
+        </div>
+        <canvas id="artwork-canvas" width="512" height="512"></canvas>
+        <small id="artwork-image-error" class="error"></small>
+        <div class="editor-actions">
+          <button id="save-artwork-button" class="primary" type="button">저장</button>
+          <button id="cancel-artwork-button" type="button">취소</button>
+        </div>
+      </section>
+      <section>
+        <h2>작품 목록</h2>
+        <div id="artwork-list" class="artwork-list"></div>
+      </section>
+    </main>
+    <dialog id="leave-dialog">
+      <form method="dialog">
+        <p>저장하지 않은 작품 변경 내용을 버리고 나갈까요?</p>
+        <div class="editor-actions">
+          <button value="discard">나가기</button>
+          <button value="cancel">계속 편집</button>
+        </div>
+      </form>
+    </dialog>
+    <script src="/item_manage.js"></script>
+  </body>
+</html>

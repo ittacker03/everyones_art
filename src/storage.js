@@ -49,6 +49,10 @@ function userGalleriesFile(userId) {
   return path.join(dataDirectory, "users", userId, "galleries.json");
 }
 
+function userDesignsFile(userId) {
+  return path.join(dataDirectory, "users", userId, "designs.json");
+}
+
 async function readArtworks(userId) {
   const file = userArtworksFile(userId);
   try {
@@ -91,6 +95,27 @@ async function saveGalleries(userId, galleries) {
   await writeJson(file, { schemaVersion: 1, galleries });
 }
 
+async function readDesigns(userId) {
+  const file = userDesignsFile(userId);
+  try {
+    const contents = await fs.readFile(file, "utf8");
+    const parsed = JSON.parse(contents.replace(/^\uFEFF/, ""));
+    if (!parsed || !Array.isArray(parsed.designs)) {
+      throw new Error("블록 디자인 저장 파일 형식이 올바르지 않습니다.");
+    }
+    return parsed.designs;
+  } catch (error) {
+    if (error.code !== "ENOENT") throw error;
+    return [];
+  }
+}
+
+async function saveDesigns(userId, designs) {
+  const file = userDesignsFile(userId);
+  await fs.mkdir(path.dirname(file), { recursive: true });
+  await writeJson(file, { schemaVersion: 1, designs });
+}
+
 module.exports = {
   ensureStorage,
   readUsers,
@@ -99,6 +124,9 @@ module.exports = {
   saveArtworks,
   readGalleries,
   saveGalleries,
+  readDesigns,
+  saveDesigns,
   userArtworksFile,
   userGalleriesFile,
+  userDesignsFile,
 };

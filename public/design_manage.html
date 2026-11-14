@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>블록 디자인 관리 - 모두의 아트</title>
+    <link rel="stylesheet" href="/styles.css" />
+    <link rel="stylesheet" href="/design.css" />
+  </head>
+  <body class="design-page">
+    <header class="topbar">
+      <a class="brand" href="/">모두의 아트</a>
+      <nav><a href="/">홈</a><a href="/design-manage">블록 디자인</a></nav>
+    </header>
+    <main>
+      <div class="page-heading">
+        <div>
+          <p class="eyebrow">BLOCK DESIGNS</p>
+          <h1>블록 디자인 관리</h1>
+        </div>
+        <a class="button primary-link" href="/design_edit">새 디자인 만들기</a>
+      </div>
+      <p id="page-error" class="error"></p>
+      <section id="design-list" class="design-list"></section>
+    </main>
+    <script src="/design_manage.js"></script>
+  </body>
+</html>
